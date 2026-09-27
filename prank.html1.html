@@ -1,0 +1,560 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0,
+               maximum-scale=1.0, user-scalable=no">
+
+<title>KTS // Security Terminal</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #020403;
+    color: #00ff66;
+    font-family: "Courier New", monospace;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Matrix background */
+canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: .18;
+}
+
+/* Main terminal */
+.terminal {
+    position: relative;
+    z-index: 2;
+    width: 94%;
+    max-width: 850px;
+    height: 88vh;
+    border: 1px solid #00ff66;
+    box-shadow:
+        0 0 15px #00ff66,
+        inset 0 0 25px rgba(0,255,102,.08);
+    background: rgba(0,8,4,.94);
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    border-bottom: 1px solid #00ff66;
+    background: rgba(0,255,102,.06);
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.status {
+    color: #ff3333;
+    font-size: 12px;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: .3; }
+}
+
+/* Content */
+.content {
+    padding: 20px;
+    height: calc(100% - 52px);
+    overflow: hidden;
+}
+
+.small {
+    color: #65ff99;
+    font-size: 12px;
+}
+
+.big {
+    margin-top: 15px;
+    font-size: clamp(25px, 6vw, 48px);
+    color: #00ff66;
+    text-shadow: 0 0 15px #00ff66;
+}
+
+.warning {
+    color: #ff3333;
+    margin: 12px 0;
+    font-weight: bold;
+}
+
+.line {
+    margin: 9px 0;
+    font-size: clamp(12px, 2.5vw, 15px);
+}
+
+.green {
+    color: #00ff66;
+}
+
+.red {
+    color: #ff3333;
+}
+
+.yellow {
+    color: #ffe600;
+}
+
+/* Progress */
+.progress-box {
+    margin-top: 22px;
+    border: 1px solid #00ff66;
+    padding: 10px;
+}
+
+.progress {
+    width: 100%;
+    height: 18px;
+    border: 1px solid #00ff66;
+    margin-top: 8px;
+}
+
+.bar {
+    width: 0%;
+    height: 100%;
+    background: #00ff66;
+    box-shadow: 0 0 15px #00ff66;
+    transition: width .4s linear;
+}
+
+.percent {
+    margin-top: 8px;
+    text-align: right;
+}
+
+/* Fake freeze */
+.freeze {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: #000;
+    color: #ff2222;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 25px;
+}
+
+.freeze.active {
+    display: flex;
+}
+
+.freeze h1 {
+    font-size: clamp(25px, 8vw, 65px);
+    text-shadow: 0 0 20px red;
+}
+
+.freeze p {
+    margin-top: 15px;
+    color: #777;
+}
+
+/* Reveal */
+.reveal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background:
+        radial-gradient(circle at center, #071b0d, #000);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 25px;
+}
+
+.reveal.active {
+    display: flex;
+}
+
+.card {
+    width: 95%;
+    max-width: 650px;
+    border: 1px solid #00ff66;
+    padding: 35px 20px;
+    box-shadow: 0 0 35px rgba(0,255,102,.3);
+}
+
+.prank {
+    font-size: clamp(32px, 9vw, 70px);
+    color: #00ff66;
+    text-shadow: 0 0 20px #00ff66;
+}
+
+.kts {
+    margin-top: 20px;
+    font-size: 22px;
+    color: white;
+    letter-spacing: 5px;
+}
+
+.safe {
+    margin-top: 20px;
+    color: #65ff99;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* Button */
+button {
+    margin-top: 25px;
+    padding: 12px 22px;
+    border: 1px solid #00ff66;
+    background: transparent;
+    color: #00ff66;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00ff66;
+    color: #000;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="terminal">
+
+    <div class="header">
+        <div class="logo">KTS // SECURITY TERMINAL</div>
+        <div class="status">● LIVE</div>
+    </div>
+
+    <div class="content">
+
+        <div class="small">
+            [ KTS PRIVATE SECURITY NETWORK ]
+        </div>
+
+        <div class="big">
+            ACCESS DETECTED
+        </div>
+
+        <div class="warning">
+            ⚠ UNAUTHORIZED SESSION DETECTED
+        </div>
+
+        <div id="terminalLines">
+
+            <div class="line green">
+                &gt; Initializing secure terminal...
+            </div>
+
+            <div class="line green">
+                &gt; Establishing encrypted connection...
+            </div>
+
+        </div>
+
+        <div class="progress-box">
+
+            <div class="small">
+                DEVICE SECURITY SCAN
+            </div>
+
+            <div class="progress">
+                <div class="bar" id="bar"></div>
+            </div>
+
+            <div class="percent">
+                <span id="percent">0</span>%
+            </div>
+
+        </div>
+
+        <div class="line yellow" id="message">
+            &gt; Please wait...
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Fake freeze screen -->
+<div class="freeze" id="freeze">
+
+    <div>
+        <h1>SYSTEM LOCKED</h1>
+
+        <p>
+            Security verification in progress...
+        </p>
+
+        <p style="margin-top:20px;color:#555;">
+            KTS SECURITY TERMINAL
+        </p>
+    </div>
+
+</div>
+
+
+<!-- Final reveal -->
+<div class="reveal" id="reveal">
+
+    <div class="card">
+
+        <div class="prank">
+            😂 PRANK!
+        </div>
+
+        <div class="kts">
+            MADE BY KTS
+        </div>
+
+        <div class="safe">
+            You were not hacked 😎<br><br>
+
+            No device was accessed.<br>
+            No files were read.<br>
+            No data was collected.<br>
+            No phone was damaged.<br><br>
+
+            <strong>
+                It was only a visual hacker prank.
+            </strong>
+        </div>
+
+        <button onclick="location.reload()">
+            RUN AGAIN
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* ============================
+   MATRIX EFFECT
+============================ */
+
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const chars =
+"01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%&@";
+
+const fontSize = 14;
+const columns = Math.floor(canvas.width / fontSize);
+
+const drops = [];
+
+for(let i = 0; i < columns; i++){
+    drops[i] = Math.random() * canvas.height;
+}
+
+function matrix(){
+
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = "#00ff66";
+    ctx.font = fontSize + "px monospace";
+
+    for(let i = 0; i < drops.length; i++){
+
+        const text =
+            chars[Math.floor(Math.random()*chars.length)];
+
+        ctx.fillText(
+            text,
+            i * fontSize,
+            drops[i]
+        );
+
+        if(drops[i] > canvas.height &&
+           Math.random() > .975){
+
+            drops[i] = 0;
+        }
+
+        drops[i] += fontSize;
+    }
+}
+
+setInterval(matrix, 45);
+
+
+/* ============================
+   TERMINAL TEXT
+============================ */
+
+const terminalLines =
+document.getElementById("terminalLines");
+
+const messages = [
+
+    "> Checking network interface...",
+
+    "> Detecting device environment...",
+
+    "> Encrypting security channel...",
+
+    "> Analyzing active session...",
+
+    "> Security layer initialized...",
+
+    "> Running KTS protocol...",
+
+    "> Searching for vulnerabilities...",
+
+    "> Final security verification..."
+
+];
+
+let msgIndex = 0;
+
+function addLine(){
+
+    if(msgIndex >= messages.length) return;
+
+    const div = document.createElement("div");
+
+    div.className = "line green";
+
+    div.textContent = messages[msgIndex];
+
+    terminalLines.appendChild(div);
+
+    msgIndex++;
+}
+
+let lineTimer = setInterval(addLine, 900);
+
+
+/* ============================
+   PROGRESS
+============================ */
+
+const bar = document.getElementById("bar");
+const percent = document.getElementById("percent");
+const message = document.getElementById("message");
+
+let progress = 0;
+
+const progressTimer = setInterval(() => {
+
+    progress += Math.floor(Math.random() * 7) + 2;
+
+    if(progress > 99){
+        progress = 99;
+    }
+
+    bar.style.width = progress + "%";
+    percent.textContent = progress;
+
+    if(progress >= 30){
+        message.textContent =
+        "> Device fingerprint detected...";
+    }
+
+    if(progress >= 55){
+        message.textContent =
+        "> Security layers bypass simulation...";
+    }
+
+    if(progress >= 75){
+        message.textContent =
+        "> Final verification running...";
+    }
+
+    if(progress >= 90){
+        message.textContent =
+        "> WARNING: UNKNOWN SESSION";
+    }
+
+    if(progress >= 99){
+
+        clearInterval(progressTimer);
+        clearInterval(lineTimer);
+
+        message.textContent =
+        "> CRITICAL SECURITY EVENT";
+
+        setTimeout(showFreeze, 1200);
+    }
+
+}, 650);
+
+
+/* ============================
+   FAKE FREEZE
+============================ */
+
+function showFreeze(){
+
+    const freeze =
+    document.getElementById("freeze");
+
+    freeze.classList.add("active");
+
+    setTimeout(() => {
+
+        freeze.classList.remove("active");
+
+        setTimeout(() => {
+
+            document
+                .getElementById("reveal")
+                .classList.add("active");
+
+        }, 500);
+
+    }, 2200);
+
+}
+
+
+/* ============================
+   RESPONSIVE CANVAS
+============================ */
+
+window.addEventListener("resize", () => {
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+});
+
+</script>
+
+</body>
+</html>
+
